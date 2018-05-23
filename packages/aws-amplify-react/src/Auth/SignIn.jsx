@@ -36,6 +36,7 @@ export default class SignIn extends AuthPiece {
         this.checkContact = this.checkContact.bind(this);
         this.signIn = this.signIn.bind(this);
 
+        this._validAuthStates = ['signIn', 'signedOut', 'signedUp'];
         this.state = {};
     }
 
@@ -56,26 +57,34 @@ export default class SignIn extends AuthPiece {
         Auth.signIn(username, password)
             .then(user => {
                 logger.debug(user);
-                if (user.challengeName === 'SMS_MFA') {
+                if (user.challengeName === 'SMS_MFA' || user.challengeName === 'SOFTWARE_TOKEN_MFA') {
+                    logger.debug('confirm user with ' + user.challengeName);
                     this.changeState('confirmSignIn', user);
                 } else if (user.challengeName === 'NEW_PASSWORD_REQUIRED') {
                     logger.debug('require new password', user.challengeParam);
                     this.changeState('requireNewPassword', user);
-                } else {
+                } else if (user.challengeName === 'MFA_SETUP') {
+                    logger.debug('TOTP setup', user.challengeParam);
+                    this.changeState('TOTPSetup', user);
+                }
+                else {
                     this.checkContact(user);
                 }
             })
             .catch(err => {
-                this.error(err)
+                if (err.code === 'UserNotConfirmedException') {
+                    logger.debug('the user is not confirmed');
+                    this.changeState('confirmSignUp');
+                } else {
+                    this.error(err);
+                }
             });
     }
 
-    render() {
+    showComponent(theme) {
         const { authState, hide, federated, onStateChange } = this.props;
-        if (!['signIn', 'signedOut', 'signedUp'].includes(authState)) { return null; }
         if (hide && hide.includes(SignIn)) { return null; }
 
-        const theme = this.props.theme || AmplifyTheme;
         return (
             <FormSection theme={theme}>
                 <SectionHeader theme={theme}>{I18n.get('Sign In Account')}</SectionHeader>

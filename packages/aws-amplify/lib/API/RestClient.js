@@ -54,11 +54,21 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) if (e.indexOf(p[i]) < 0)
+            t[p[i]] = s[p[i]];
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Signer_1 = require("../Common/Signer");
 var Common_1 = require("../Common");
 var Auth_1 = require("../Auth");
 var axios_1 = require("axios");
+var Platform_1 = require("../Common/Platform");
 var logger = new Common_1.ConsoleLogger('RestClient');
 /**
 * HTTP Client for REST requests. Send and receive JSON data.
@@ -73,11 +83,13 @@ restClient.get('...')
     .catch(err => console.log(err));
 </pre>
 */
-var RestClient = (function () {
+var RestClient = /** @class */ (function () {
     /**
     * @param {RestClientOptions} [options] - Instance options
     */
     function RestClient(options) {
+        this._region = 'us-east-1'; // this will be updated by config
+        this._service = 'execute-api'; // this can be updated by config
         var endpoints = options.endpoints;
         this._options = options;
         logger.debug('API Options', this._options);
@@ -100,7 +112,7 @@ var RestClient = (function () {
     RestClient.prototype.ajax = function (url, method, init) {
         return __awaiter(this, void 0, void 0, function () {
             var _this = this;
-            var parsed_url, params, libraryHeaders, extraParams;
+            var parsed_url, params, libraryHeaders, userAgent, extraParams, isAllResponse;
             return __generator(this, function (_a) {
                 logger.debug(method + ' ' + url);
                 parsed_url = this._parseUrl(url);
@@ -113,19 +125,34 @@ var RestClient = (function () {
                     data: null
                 };
                 libraryHeaders = {};
+                if (Platform_1.default.isReactNative) {
+                    userAgent = Platform_1.default.userAgent || 'aws-amplify/0.1.x';
+                    libraryHeaders = {
+                        'User-Agent': userAgent
+                    };
+                }
                 extraParams = Object.assign({}, init);
+                isAllResponse = init ? init.response : null;
                 if (extraParams.body) {
                     libraryHeaders['content-type'] = 'application/json; charset=UTF-8';
                     params.data = JSON.stringify(extraParams.body);
                 }
+                params['signerServiceInfo'] = extraParams.signerServiceInfo;
                 params.headers = __assign({}, libraryHeaders, extraParams.headers);
                 // Do not sign the request if client has added 'Authorization' header,
                 // which means custom authorizer.
-                if (params.headers['Authorization']) {
+                if (typeof params.headers['Authorization'] !== 'undefined') {
+                    params.headers = Object.keys(params.headers).reduce(function (acc, k) {
+                        if (params.headers[k]) {
+                            acc[k] = params.headers[k];
+                        }
+                        return acc;
+                        // tslint:disable-next-line:align
+                    }, {});
                     return [2 /*return*/, this._request(params)];
                 }
                 return [2 /*return*/, Auth_1.default.currentCredentials()
-                        .then(function (credentials) { return _this._signed(params, credentials); })];
+                        .then(function (credentials) { return _this._signed(params, credentials, isAllResponse); })];
             });
         });
     };
@@ -140,17 +167,26 @@ var RestClient = (function () {
     };
     /**
     * PUT HTTP request
-    * @param {String} url - Full request URL
-    * @param {JSON} init - Request extra params
+    * @param {string} url - Full request URL
+    * @param {json} init - Request extra params
     * @return {Promise} - A promise that resolves to an object with response status and JSON data, if successful.
     */
     RestClient.prototype.put = function (url, init) {
         return this.ajax(url, 'PUT', init);
     };
     /**
+    * PATCH HTTP request
+    * @param {string} url - Full request URL
+    * @param {json} init - Request extra params
+    * @return {Promise} - A promise that resolves to an object with response status and JSON data, if successful.
+    */
+    RestClient.prototype.patch = function (url, init) {
+        return this.ajax(url, 'PATCH', init);
+    };
+    /**
     * POST HTTP request
-    * @param {String} url - Full request URL
-    * @param {JSON} init - Request extra params
+    * @param {string} url - Full request URL
+    * @param {json} init - Request extra params
     * @return {Promise} - A promise that resolves to an object with response status and JSON data, if successful.
     */
     RestClient.prototype.post = function (url, init) {
@@ -159,7 +195,7 @@ var RestClient = (function () {
     /**
     * DELETE HTTP request
     * @param {string} url - Full request URL
-    * @param {JSON} init - Request extra params
+    * @param {json} init - Request extra params
     * @return {Promise} - A promise that resolves to an object with response status and JSON data, if successful.
     */
     RestClient.prototype.del = function (url, init) {
@@ -168,7 +204,7 @@ var RestClient = (function () {
     /**
     * HEAD HTTP request
     * @param {string} url - Full request URL
-    * @param {JSON} init - Request extra params
+    * @param {json} init - Request extra params
     * @return {Promise} - A promise that resolves to an object with response status and JSON data, if successful.
     */
     RestClient.prototype.head = function (url, init) {
@@ -180,37 +216,57 @@ var RestClient = (function () {
     * @return {string} - The endpoint of the api
     */
     RestClient.prototype.endpoint = function (apiName) {
+        var _this = this;
         var cloud_logic_array = this._options.endpoints;
         var response = '';
         cloud_logic_array.forEach(function (v) {
             if (v.name === apiName) {
                 response = v.endpoint;
+                if (typeof v.region === 'string') {
+                    _this._region = v.region;
+                }
+                else if (typeof _this._options.region === 'string') {
+                    _this._region = _this._options.region;
+                }
+                if (typeof v.service === 'string') {
+                    _this._service = v.service || 'execute-api';
+                }
             }
         });
         return response;
     };
     /** private methods **/
-    RestClient.prototype._signed = function (params, credentials) {
-        var signed_params = Signer_1.default.sign(params, {
+    RestClient.prototype._signed = function (params, credentials, isAllResponse) {
+        var signerServiceInfoParams = params.signerServiceInfo, otherParams = __rest(params, ["signerServiceInfo"]);
+        var endpoint_region = this._region || this._options.region;
+        var endpoint_service = this._service || this._options.service;
+        var creds = {
             secret_key: credentials.secretAccessKey,
             access_key: credentials.accessKeyId,
-            session_token: credentials.sessionToken
-        });
+            session_token: credentials.sessionToken,
+        };
+        var endpointInfo = {
+            region: endpoint_region,
+            service: endpoint_service,
+        };
+        var signerServiceInfo = Object.assign(endpointInfo, signerServiceInfoParams);
+        var signed_params = Signer_1.default.sign(otherParams, creds, signerServiceInfo);
         if (signed_params.data) {
             signed_params.body = signed_params.data;
         }
-        logger.debug(signed_params);
+        logger.debug('Signed Request: ', signed_params);
         delete signed_params.headers['host'];
         return axios_1.default(signed_params)
-            .then(function (response) { return response.data; })
+            .then(function (response) { return isAllResponse ? response : response.data; })
             .catch(function (error) {
             logger.debug(error);
             throw error;
         });
     };
-    RestClient.prototype._request = function (params) {
+    RestClient.prototype._request = function (params, isAllResponse) {
+        if (isAllResponse === void 0) { isAllResponse = false; }
         return axios_1.default(params)
-            .then(function (response) { return response.data; })
+            .then(function (response) { return isAllResponse ? response : response.data; })
             .catch(function (error) {
             logger.debug(error);
             throw error;

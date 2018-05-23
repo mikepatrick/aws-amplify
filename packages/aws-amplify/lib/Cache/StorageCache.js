@@ -19,7 +19,7 @@ var logger = new Common_1.ConsoleLogger('StorageCache');
  * Initialization of the cache
  *
  */
-var StorageCache = (function () {
+var StorageCache = /** @class */ (function () {
     /**
      * Initialize the cache
      * @param config - the configuration of the cache
@@ -31,19 +31,19 @@ var StorageCache = (function () {
     }
     StorageCache.prototype.checkConfig = function () {
         // check configuration
-        if (!Number.isInteger(this.config.capacityInBytes)) {
+        if (!Utils_1.isInteger(this.config.capacityInBytes)) {
             logger.error('Invalid parameter: capacityInBytes. It should be an Integer. Setting back to default.');
             this.config.capacityInBytes = Utils_1.defaultConfig.capacityInBytes;
         }
-        if (!Number.isInteger(this.config.itemMaxSize)) {
+        if (!Utils_1.isInteger(this.config.itemMaxSize)) {
             logger.error('Invalid parameter: itemMaxSize. It should be an Integer. Setting back to default.');
             this.config.itemMaxSize = Utils_1.defaultConfig.itemMaxSize;
         }
-        if (!Number.isInteger(this.config.defaultTTL)) {
+        if (!Utils_1.isInteger(this.config.defaultTTL)) {
             logger.error('Invalid parameter: defaultTTL. It should be an Integer. Setting back to default.');
             this.config.defaultTTL = Utils_1.defaultConfig.defaultTTL;
         }
-        if (!Number.isInteger(this.config.defaultPriority)) {
+        if (!Utils_1.isInteger(this.config.defaultPriority)) {
             logger.error('Invalid parameter: defaultPriority. It should be an Integer. Setting back to default.');
             this.config.defaultPriority = Utils_1.defaultConfig.defaultPriority;
         }
@@ -102,8 +102,7 @@ var StorageCache = (function () {
         if (config.keyPrefix) {
             logger.warn("Don't try to configure keyPrefix!");
         }
-        config.keyPrefix = this.config.keyPrefix;
-        this.config = Object.assign({}, this.config, config);
+        this.config = Object.assign({}, this.config, config, config.Cache);
         this.checkConfig();
         return this.config;
     };

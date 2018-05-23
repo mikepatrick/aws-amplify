@@ -19,11 +19,18 @@ export { default as ClientDevice } from './ClientDevice';
 export * from './Logger';
 export * from './Errors';
 export { default as Hub } from './Hub';
+export { default as I18n } from './I18n';
 export { default as JS } from './JS';
 export { default as Signer } from './Signer';
+export { default as Parser } from './Parser';
+export { FacebookOAuth, GoogleOAuth } from './OAuthHelper';
+export { default as Amplify } from './Amplify';
+export * from './RNComponents';
+export { default as ServiceWorker } from './ServiceWorker';
 
+import Platform from './Platform';
 export const Constants = {
-    userAgent: 'aws-amplify/0.1.22 js'
+    'userAgent': Platform.userAgent
 };
 
 const logger = new Logger('Common');
@@ -33,7 +40,7 @@ if (AWS['util']) {
         return Constants.userAgent;
     };
 } else if (AWS.config) {
-    AWS.config.update({customUserAgent: Constants.userAgent});
+    AWS.config.update({'customUserAgent': Constants.userAgent});
 } else {
     logger.warn('No AWS.config');
 }

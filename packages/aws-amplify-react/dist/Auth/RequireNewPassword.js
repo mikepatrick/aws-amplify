@@ -22,7 +22,7 @@ var _AmplifyTheme2 = _interopRequireDefault(_AmplifyTheme);
 
 var _AmplifyUI = require('../AmplifyUI');
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -51,99 +51,84 @@ var RequireNewPassword = function (_AuthPiece) {
 
         var _this = _possibleConstructorReturn(this, (RequireNewPassword.__proto__ || Object.getPrototypeOf(RequireNewPassword)).call(this, props));
 
+        _this._validAuthStates = ['requireNewPassword'];
         _this.change = _this.change.bind(_this);
         return _this;
     }
 
     _createClass(RequireNewPassword, [{
         key: 'change',
-        value: function () {
-            function change() {
-                var _this2 = this;
+        value: function change() {
+            var _this2 = this;
 
-                var user = this.props.authData;
-                var password = this.inputs.password;
-                var requiredAttributes = user.challengeParam.requiredAttributes;
+            var user = this.props.authData;
+            var password = this.inputs.password;
+            var requiredAttributes = user.challengeParam.requiredAttributes;
 
-                _awsAmplify.Auth.completeNewPassword(user, password, requiredAttributes).then(function (user) {
-                    logger.debug('complete new password', user);
-                    _this2.changeState('signedIn');
-                })['catch'](function (err) {
-                    return _this2.error(err);
-                });
-            }
-
-            return change;
-        }()
+            _awsAmplify.Auth.completeNewPassword(user, password, requiredAttributes).then(function (user) {
+                logger.debug('complete new password', user);
+                if (user.challengeName === 'SMS_MFA') {
+                    _this2.changeState('confirmSignIn', user);
+                } else {
+                    _this2.changeState('signedIn', user);
+                }
+            }).catch(function (err) {
+                return _this2.error(err);
+            });
+        }
     }, {
-        key: 'render',
-        value: function () {
-            function render() {
-                var _this3 = this;
+        key: 'showComponent',
+        value: function showComponent(theme) {
+            var _this3 = this;
 
-                var _props = this.props,
-                    authState = _props.authState,
-                    hide = _props.hide;
+            var hide = this.props.hide;
 
-                if (authState !== 'requireNewPassword') {
-                    return null;
-                }
-
-                var theme = this.props.theme || _AmplifyTheme2['default'];
-
-                if (hide && hide.includes(RequireNewPassword)) {
-                    return null;
-                }
-
-                return _react2['default'].createElement(
-                    _AmplifyUI.FormSection,
-                    { theme: theme },
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionHeader,
-                        { theme: theme },
-                        _awsAmplify.I18n.get('Change Password')
-                    ),
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionBody,
-                        null,
-                        _react2['default'].createElement(_AmplifyUI.InputRow, {
-                            autoFocus: true,
-                            placeholder: _awsAmplify.I18n.get('New Password'),
-                            theme: theme,
-                            key: 'password',
-                            name: 'password',
-                            type: 'password',
-                            onChange: this.handleInputChange
-                        }),
-                        _react2['default'].createElement(
-                            _AmplifyUI.ButtonRow,
-                            { theme: theme, onClick: this.change },
-                            _awsAmplify.I18n.get('Change')
-                        )
-                    ),
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionFooter,
-                        { theme: theme },
-                        _react2['default'].createElement(
-                            _AmplifyUI.Link,
-                            { theme: theme, onClick: function () {
-                                    function onClick() {
-                                        return _this3.changeState('signIn');
-                                    }
-
-                                    return onClick;
-                                }() },
-                            _awsAmplify.I18n.get('Back to Sign In')
-                        )
-                    )
-                );
+            if (hide && hide.includes(RequireNewPassword)) {
+                return null;
             }
 
-            return render;
-        }()
+            return _react2.default.createElement(
+                _AmplifyUI.FormSection,
+                { theme: theme },
+                _react2.default.createElement(
+                    _AmplifyUI.SectionHeader,
+                    { theme: theme },
+                    _awsAmplify.I18n.get('Change Password')
+                ),
+                _react2.default.createElement(
+                    _AmplifyUI.SectionBody,
+                    null,
+                    _react2.default.createElement(_AmplifyUI.InputRow, {
+                        autoFocus: true,
+                        placeholder: _awsAmplify.I18n.get('New Password'),
+                        theme: theme,
+                        key: 'password',
+                        name: 'password',
+                        type: 'password',
+                        onChange: this.handleInputChange
+                    }),
+                    _react2.default.createElement(
+                        _AmplifyUI.ButtonRow,
+                        { theme: theme, onClick: this.change },
+                        _awsAmplify.I18n.get('Change')
+                    )
+                ),
+                _react2.default.createElement(
+                    _AmplifyUI.SectionFooter,
+                    { theme: theme },
+                    _react2.default.createElement(
+                        _AmplifyUI.Link,
+                        { theme: theme, onClick: function onClick() {
+                                return _this3.changeState('signIn');
+                            } },
+                        _awsAmplify.I18n.get('Back to Sign In')
+                    )
+                )
+            );
+        }
     }]);
 
     return RequireNewPassword;
-}(_AuthPiece3['default']);
+}(_AuthPiece3.default);
 
-exports['default'] = RequireNewPassword;
+exports.default = RequireNewPassword;

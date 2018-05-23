@@ -11,43 +11,24 @@
  * and limitations under the License.
  */
 
-import Auth from './Auth';
-import Analytics from './Analytics';
-import Storage from './Storage';
-import API from './API';
-import I18n from './I18n';
+import Analytics, { AnalyticsClass, AnalyticsProvider } from './Analytics';
+import Auth, { AuthClass } from './Auth';
+import Storage, { StorageClass } from './Storage';
+import API, { APIClass, graphqlOperation } from './API';
+import PubSub from './PubSub';
 import Cache from './Cache';
 import {
     ConsoleLogger as Logger,
     Hub,
     JS,
     ClientDevice,
-    Signer
+    Signer,
+    I18n,
+    Amplify,
+    ServiceWorker
 } from './Common';
 
-const logger = new Logger('Amplify');
-
-export default class Amplify {
-    static Auth = null;
-    static Analytics = null;
-    static API = null;
-    static Storage = null;
-    static I18n = null;
-    static Cache = null;
-
-    static Logger = null;
-
-    static configure(config) {
-        if (!config) { return; }
-
-        Auth.configure(config);
-        I18n.configure(config);
-        Analytics.configure(config);
-        API.configure(config);
-        Storage.configure(config);
-        Cache.configure(config);
-    }
-}
+export default Amplify;
 
 Amplify.Auth = Auth;
 Amplify.Analytics = Analytics;
@@ -55,7 +36,10 @@ Amplify.API = API;
 Amplify.Storage = Storage;
 Amplify.I18n = I18n;
 Amplify.Cache = Cache;
-
+Amplify.PubSub = PubSub;
 Amplify.Logger = Logger;
+Amplify.ServiceWorker = ServiceWorker;
 
-export { Auth, Analytics, Storage, API, I18n, Logger, Hub, Cache, JS, ClientDevice, Signer };
+export { Auth, Analytics, Storage, API, PubSub, I18n, Logger, Hub, Cache, JS, ClientDevice, Signer, ServiceWorker };
+export { AuthClass, AnalyticsClass, APIClass, StorageClass, AnalyticsProvider };
+export { graphqlOperation };

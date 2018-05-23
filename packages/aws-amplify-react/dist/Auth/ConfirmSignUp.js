@@ -22,7 +22,7 @@ var _AmplifyTheme2 = _interopRequireDefault(_AmplifyTheme);
 
 var _AmplifyUI = require('../AmplifyUI');
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -51,6 +51,7 @@ var ConfirmSignUp = function (_AuthPiece) {
 
         var _this = _possibleConstructorReturn(this, (ConfirmSignUp.__proto__ || Object.getPrototypeOf(ConfirmSignUp)).call(this, props));
 
+        _this._validAuthStates = ['confirmSignUp'];
         _this.confirm = _this.confirm.bind(_this);
         _this.resend = _this.resend.bind(_this);
         return _this;
@@ -58,131 +59,107 @@ var ConfirmSignUp = function (_AuthPiece) {
 
     _createClass(ConfirmSignUp, [{
         key: 'confirm',
-        value: function () {
-            function confirm() {
-                var _this2 = this;
+        value: function confirm() {
+            var _this2 = this;
 
-                var username = this.usernameFromAuthData() || this.inputs.username;
-                var code = this.inputs.code;
+            var username = this.usernameFromAuthData() || this.inputs.username;
+            var code = this.inputs.code;
 
-                _awsAmplify.Auth.confirmSignUp(username, code).then(function () {
-                    return _this2.changeState('signedUp');
-                })['catch'](function (err) {
-                    return _this2.error(err);
-                });
-            }
-
-            return confirm;
-        }()
+            _awsAmplify.Auth.confirmSignUp(username, code).then(function () {
+                return _this2.changeState('signedUp');
+            }).catch(function (err) {
+                return _this2.error(err);
+            });
+        }
     }, {
         key: 'resend',
-        value: function () {
-            function resend() {
-                var _this3 = this;
+        value: function resend() {
+            var _this3 = this;
 
-                var username = this.usernameFromAuthData() || this.inputs.username;
-                _awsAmplify.Auth.resendSignUp(username).then(function () {
-                    return logger.debug('code resent');
-                })['catch'](function (err) {
-                    return _this3.error(err);
-                });
+            var username = this.usernameFromAuthData() || this.inputs.username;
+            _awsAmplify.Auth.resendSignUp(username).then(function () {
+                return logger.debug('code resent');
+            }).catch(function (err) {
+                return _this3.error(err);
+            });
+        }
+    }, {
+        key: 'showComponent',
+        value: function showComponent(theme) {
+            var _this4 = this;
+
+            var hide = this.props.hide;
+
+            var username = this.usernameFromAuthData();
+
+            if (hide && hide.includes(ConfirmSignUp)) {
+                return null;
             }
 
-            return resend;
-        }()
-    }, {
-        key: 'render',
-        value: function () {
-            function render() {
-                var _this4 = this;
-
-                var _props = this.props,
-                    authState = _props.authState,
-                    hide = _props.hide;
-
-                if (authState !== 'confirmSignUp') {
-                    return null;
-                }
-
-                var username = this.usernameFromAuthData();
-
-                var theme = this.props.theme || _AmplifyTheme2['default'];
-
-                if (hide && hide.includes(ConfirmSignUp)) {
-                    return null;
-                }
-
-                return _react2['default'].createElement(
-                    _AmplifyUI.FormSection,
+            return _react2.default.createElement(
+                _AmplifyUI.FormSection,
+                { theme: theme },
+                _react2.default.createElement(
+                    _AmplifyUI.SectionHeader,
                     { theme: theme },
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionHeader,
+                    _awsAmplify.I18n.get('Confirm'),
+                    ' ',
+                    _awsAmplify.I18n.get('Sign Up')
+                ),
+                _react2.default.createElement(
+                    _AmplifyUI.SectionBody,
+                    { theme: theme },
+                    username ? _react2.default.createElement(
+                        _AmplifyUI.MessageRow,
+                        null,
+                        username
+                    ) : _react2.default.createElement(_AmplifyUI.InputRow, {
+                        placeholder: _awsAmplify.I18n.get('Username'),
+                        theme: theme,
+                        key: 'username',
+                        name: 'username',
+                        onChange: this.handleInputChange
+                    }),
+                    _react2.default.createElement(_AmplifyUI.InputRow, {
+                        autoFocus: true,
+                        placeholder: _awsAmplify.I18n.get('Code'),
+                        theme: theme,
+                        key: 'code',
+                        name: 'code',
+                        onChange: this.handleInputChange
+                    }),
+                    _react2.default.createElement(
+                        _AmplifyUI.ActionRow,
                         { theme: theme },
-                        _awsAmplify.I18n.get('Confirm'),
-                        ' ',
-                        _awsAmplify.I18n.get('Sign Up')
-                    ),
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionBody,
-                        { theme: theme },
-                        username ? _react2['default'].createElement(
-                            _AmplifyUI.MessageRow,
-                            null,
-                            username
-                        ) : _react2['default'].createElement(_AmplifyUI.InputRow, {
-                            placeholder: _awsAmplify.I18n.get('Username'),
-                            theme: theme,
-                            key: 'username',
-                            name: 'username',
-                            onChange: this.handleInputChange
-                        }),
-                        _react2['default'].createElement(_AmplifyUI.InputRow, {
-                            autoFocus: true,
-                            placeholder: _awsAmplify.I18n.get('Code'),
-                            theme: theme,
-                            key: 'code',
-                            name: 'code',
-                            onChange: this.handleInputChange
-                        }),
-                        _react2['default'].createElement(
-                            _AmplifyUI.ActionRow,
-                            { theme: theme },
-                            _react2['default'].createElement(
-                                _AmplifyUI.Button,
-                                { theme: theme, onClick: this.confirm },
-                                _awsAmplify.I18n.get('Confirm')
-                            ),
-                            _react2['default'].createElement(_AmplifyUI.Space, { theme: theme }),
-                            _react2['default'].createElement(
-                                _AmplifyUI.Button,
-                                { theme: theme, onClick: this.resend },
-                                _awsAmplify.I18n.get('Resend Code')
-                            )
-                        )
-                    ),
-                    _react2['default'].createElement(
-                        _AmplifyUI.SectionFooter,
-                        { theme: theme },
-                        _react2['default'].createElement(
-                            _AmplifyUI.Link,
-                            { theme: theme, onClick: function () {
-                                    function onClick() {
-                                        return _this4.changeState('signIn');
-                                    }
-
-                                    return onClick;
-                                }() },
-                            _awsAmplify.I18n.get('Back to Sign In')
+                        _react2.default.createElement(
+                            _AmplifyUI.Button,
+                            { theme: theme, onClick: this.confirm },
+                            _awsAmplify.I18n.get('Confirm')
+                        ),
+                        _react2.default.createElement(_AmplifyUI.Space, { theme: theme }),
+                        _react2.default.createElement(
+                            _AmplifyUI.Button,
+                            { theme: theme, onClick: this.resend },
+                            _awsAmplify.I18n.get('Resend Code')
                         )
                     )
-                );
-            }
-
-            return render;
-        }()
+                ),
+                _react2.default.createElement(
+                    _AmplifyUI.SectionFooter,
+                    { theme: theme },
+                    _react2.default.createElement(
+                        _AmplifyUI.Link,
+                        { theme: theme, onClick: function onClick() {
+                                return _this4.changeState('signIn');
+                            } },
+                        _awsAmplify.I18n.get('Back to Sign In')
+                    )
+                )
+            );
+        }
     }]);
 
     return ConfirmSignUp;
-}(_AuthPiece3['default']);
+}(_AuthPiece3.default);
 
-exports['default'] = ConfirmSignUp;
+exports.default = ConfirmSignUp;

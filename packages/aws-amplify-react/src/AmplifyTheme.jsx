@@ -10,9 +10,6 @@
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions
  * and limitations under the License.
  */
-
-import { Hub, ClientDevice } from 'aws-amplify';
-
 export const Container = {
     fontFamily: `-apple-system,
                 BlinkMacSystemFont,
@@ -280,6 +277,10 @@ export const Col12 = {
     width: '100%'
 }
 
+export const Hidden = {
+    display: 'none'
+}
+
 const Bootstrap = {
     container: Container,
 
@@ -319,7 +320,9 @@ const Bootstrap = {
     col9: Col9,
     col10: Col10,
     col11: Col11,
-    col12: Col12
+    col12: Col12,
+
+    hidden: Hidden,
 }
 
 export default Bootstrap;

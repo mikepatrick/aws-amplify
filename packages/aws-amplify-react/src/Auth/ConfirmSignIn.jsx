@@ -32,28 +32,37 @@ export default class ConfirmSignIn extends AuthPiece {
     constructor(props) {
         super(props);
 
+        this._validAuthStates = ['confirmSignIn'];
         this.confirm = this.confirm.bind(this);
+        this.state = {
+            mfaType: 'SMS'
+        }
     }
 
     confirm() {
         const user = this.props.authData;
         const { code } = this.inputs;
-        Auth.confirmSignIn(user, code)
-            .then(() => this.changeState('signedIn'))
+        const mfaType = user.challengeName === 'SOFTWARE_TOKEN_MFA' ? 'SOFTWARE_TOKEN_MFA' : null;
+        Auth.confirmSignIn(user, code, mfaType)
+            .then(() => this.changeState('signedIn', user))
             .catch(err => this.error(err));
     }
 
-    render() {
-        const { authState, hide } = this.props;
-        if (authState !== 'confirmSignIn') { return null; }
+    componentDidUpdate() {
+        //logger.debug('component did update with props', this.props);
+        const user = this.props.authData;
+        const mfaType = user && user.challengeName === 'SOFTWARE_TOKEN_MFA'?
+            'TOTP' : 'SMS';
+        if (this.state.mfaType !== mfaType) this.setState({ mfaType });
+    }
 
-        const theme = this.props.theme || AmplifyTheme;
-
+    showComponent(theme) {
+        const { hide, authData } = this.props;
         if (hide && hide.includes(ConfirmSignIn)) { return null; }
 
         return (
             <FormSection theme={theme}>
-                <SectionHeader theme={theme}>{I18n.get('Confirm Code')}</SectionHeader>
+                <SectionHeader theme={theme}>{I18n.get('Confirm ' + this.state.mfaType + ' Code')}</SectionHeader>
                 <SectionBody theme={theme}>
                     <InputRow
                         autoFocus

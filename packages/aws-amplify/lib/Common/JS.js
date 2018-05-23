@@ -46,7 +46,7 @@ var MIME_MAP = [
     { type: 'application/vnd.ms-excel', ext: 'xlsx' },
     { type: 'message/rfc822', ext: 'eml' }
 ];
-var JS = (function () {
+var JS = /** @class */ (function () {
     function JS() {
     }
     JS.isEmpty = function (obj) {
@@ -104,6 +104,37 @@ var JS = (function () {
         return ('application/json' === type ||
             'application/xml' === type ||
             'application/sh' === type);
+    };
+    /**
+     * generate random string
+     */
+    JS.generateRandomString = function () {
+        var result = '';
+        var chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (var i = 32; i > 0; i -= 1) {
+            result += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return result;
+    };
+    JS.makeQuerablePromise = function (promise) {
+        if (promise.isResolved)
+            return promise;
+        var isPending = true;
+        var isRejected = false;
+        var isFullfilled = false;
+        var result = promise.then(function (data) {
+            isFullfilled = true;
+            isPending = false;
+            return data;
+        }, function (e) {
+            isRejected = true;
+            isPending = false;
+            throw e;
+        });
+        result.isFullfilled = function () { return isFullfilled; };
+        result.isPending = function () { return isPending; };
+        result.isRejected = function () { return isRejected; };
+        return result;
     };
     return JS;
 }());

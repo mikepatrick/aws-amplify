@@ -58,7 +58,7 @@ var dispatchStorageEvent = function (track, attrs, metrics) {
 /**
  * Provide storage methods to use AWS S3
  */
-var StorageClass = (function () {
+var StorageClass = /** @class */ (function () {
     /**
      * Initialize Storage with AWS configurations
      * @param {Object} options - Configuration object for storage
@@ -90,12 +90,12 @@ var StorageClass = (function () {
     /**
     * Get a presigned URL of the file
     * @param {String} key - key of the object
-    * @param {Object} [options] - { level : private|public }
+    * @param {Object} [options] - { level : private|protected|public }
     * @return - A promise resolves to Amazon S3 presigned URL on success
     */
     StorageClass.prototype.get = function (key, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var credentialsOK, opt, bucket, region, credentials, level, download, track, prefix, final_key, s3, params;
+            var credentialsOK, opt, bucket, region, credentials, level, download, track, expires, prefix, final_key, s3, params;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this._ensureCredentials()];
@@ -105,7 +105,7 @@ var StorageClass = (function () {
                             return [2 /*return*/, Promise.reject('No credentials')];
                         }
                         opt = Object.assign({}, this._options, options);
-                        bucket = opt.bucket, region = opt.region, credentials = opt.credentials, level = opt.level, download = opt.download, track = opt.track;
+                        bucket = opt.bucket, region = opt.region, credentials = opt.credentials, level = opt.level, download = opt.download, track = opt.track, expires = opt.expires;
                         prefix = this._prefix(opt);
                         final_key = prefix + key;
                         s3 = this._createS3(opt);
@@ -128,6 +128,9 @@ var StorageClass = (function () {
                                     });
                                 })];
                         }
+                        if (expires) {
+                            params.Expires = expires;
+                        }
                         return [2 /*return*/, new Promise(function (res, rej) {
                                 try {
                                     var url = s3.getSignedUrl('getObject', params);
@@ -148,12 +151,12 @@ var StorageClass = (function () {
      * Put a file in S3 bucket specified to configure method
      * @param {Stirng} key - key of the object
      * @param {Object} object - File to be put in Amazon S3 bucket
-     * @param {Object} [options] - { level : private|public, contentType: MIME Types }
+     * @param {Object} [options] - { level : private|protected|public, contentType: MIME Types }
      * @return - promise resolves to object on success
      */
     StorageClass.prototype.put = function (key, object, options) {
         return __awaiter(this, void 0, void 0, function () {
-            var credentialsOK, opt, bucket, region, credentials, contentType, level, track, type, prefix, final_key, s3, params;
+            var credentialsOK, opt, bucket, region, credentials, level, track, contentType, contentDisposition, cacheControl, expires, metadata, type, prefix, final_key, s3, params;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this._ensureCredentials()];
@@ -163,7 +166,8 @@ var StorageClass = (function () {
                             return [2 /*return*/, Promise.reject('No credentials')];
                         }
                         opt = Object.assign({}, this._options, options);
-                        bucket = opt.bucket, region = opt.region, credentials = opt.credentials, contentType = opt.contentType, level = opt.level, track = opt.track;
+                        bucket = opt.bucket, region = opt.region, credentials = opt.credentials, level = opt.level, track = opt.track;
+                        contentType = opt.contentType, contentDisposition = opt.contentDisposition, cacheControl = opt.cacheControl, expires = opt.expires, metadata = opt.metadata;
                         type = contentType ? contentType : 'binary/octet-stream';
                         prefix = this._prefix(opt);
                         final_key = prefix + key;
@@ -175,6 +179,18 @@ var StorageClass = (function () {
                             Body: object,
                             ContentType: type
                         };
+                        if (cacheControl) {
+                            params.CacheControl = cacheControl;
+                        }
+                        if (contentDisposition) {
+                            params.ContentDisposition = contentDisposition;
+                        }
+                        if (expires) {
+                            params.Expires = expires;
+                        }
+                        if (metadata) {
+                            params.Metadata = metadata;
+                        }
                         return [2 /*return*/, new Promise(function (res, rej) {
                                 s3.upload(params, function (err, data) {
                                     if (err) {
@@ -198,7 +214,7 @@ var StorageClass = (function () {
     /**
      * Remove the object for specified key
      * @param {String} key - key of the object
-     * @param {Object} [options] - { level : private|public }
+     * @param {Object} [options] - { level : private|protected|public }
      * @return - Promise resolves upon successful removal of the object
      */
     StorageClass.prototype.remove = function (key, options) {
@@ -241,7 +257,7 @@ var StorageClass = (function () {
     /**
      * List bucket objects relative to the level and prefix specified
      * @param {String} path - the path that contains objects
-     * @param {Object} [options] - { level : private|public }
+     * @param {Object} [options] - { level : private|protected|public }
      * @return - Promise resolves to list of keys for all objects in path
      */
     StorageClass.prototype.list = function (path, options) {
@@ -301,6 +317,8 @@ var StorageClass = (function () {
         var _this = this;
         return Auth_1.default.currentCredentials()
             .then(function (credentials) {
+            if (!credentials)
+                return false;
             var cred = Auth_1.default.essentialCredentials(credentials);
             logger.debug('set credentials for storage', cred);
             _this._options.credentials = cred;
@@ -316,7 +334,18 @@ var StorageClass = (function () {
      */
     StorageClass.prototype._prefix = function (options) {
         var credentials = options.credentials, level = options.level;
-        return (level === 'private') ? "private/" + credentials.identityId + "/" : 'public/';
+        var customPrefix = options.customPrefix || {};
+        var privatePath = (customPrefix.private || 'private/') + credentials.identityId + '/';
+        var protectedPath = (customPrefix.protected || 'protected/') + credentials.identityId + '/';
+        var publicPath = customPrefix.public || 'public/';
+        switch (level) {
+            case 'private':
+                return privatePath;
+            case 'protected':
+                return protectedPath;
+            default:
+                return publicPath;
+        }
     };
     /**
      * @private

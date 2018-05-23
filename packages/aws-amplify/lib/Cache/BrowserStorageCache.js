@@ -29,7 +29,7 @@ var logger = new Common_1.ConsoleLogger('Cache');
 /**
  * Customized storage based on the SessionStorage or LocalStorage with LRU implemented
  */
-var BrowserStorageCache = (function (_super) {
+var BrowserStorageCache = /** @class */ (function (_super) {
     __extends(BrowserStorageCache, _super);
     /**
      * initialize the cache
@@ -40,6 +40,7 @@ var BrowserStorageCache = (function (_super) {
         var cacheConfig = config ? Object.assign({}, Utils_1.defaultConfig, config) : Utils_1.defaultConfig;
         _this = _super.call(this, cacheConfig) || this;
         _this.config.storage = cacheConfig.storage;
+        logger.debug('Using AsyncStorageCache');
         return _this;
     }
     /**

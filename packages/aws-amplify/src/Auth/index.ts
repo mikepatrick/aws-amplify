@@ -13,11 +13,11 @@
 
 import AuthClass from './Auth';
 
-import { ConsoleLogger as Logger } from '../Common';
+import { ConsoleLogger as Logger, Amplify } from '../Common';
 
 const logger = new Logger('Auth');
 
-let _instance = null;
+let _instance: AuthClass = null;
 
 if (!_instance) {
     logger.debug('Create Auth Instance');
@@ -25,4 +25,7 @@ if (!_instance) {
 }
 
 const Auth = _instance;
+Amplify.register(Auth);
+
 export default Auth;
+export { AuthClass };

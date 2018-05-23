@@ -11,6 +11,8 @@
  * and limitations under the License.
  */
 
+ import { ICookieStorageData } from "amazon-cognito-identity-js";
+
 /**
 * Parameters for user sign up
 */
@@ -28,6 +30,10 @@ export interface AuthOptions {
     userPoolWebClientId: string,
     identityPoolId: string,
     region?: string,
+    mandatorySignIn: boolean
+    cookieStorage?: ICookieStorageData,
+    oauth?: OAuth,
+    refreshHandlers?: object
 }
 
 /**
@@ -36,4 +42,25 @@ export interface AuthOptions {
 export interface MfaRequiredDetails {
     challengeName: any,
     challengeParameters: any
+}
+
+/**
+ * interface for federatedResponse
+ */
+export interface FederatedResponse {
+    // access token
+    token: string,
+    // identity id
+    identity_id?: string,
+    // the universal time when token expired
+    expires_at: number
+}
+
+export interface OAuth {
+    domain : string,
+	scope : Array<string>,
+	redirectSignIn : string,
+	redirectSignOut : string,
+    responseType: string,
+    options?: object
 }

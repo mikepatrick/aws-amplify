@@ -1,21 +1,29 @@
+---
+---
 # Hub
 
-AWS Amplify has a lightweight Pub-Sub system called Hub. It is used to share events between modules and components.
+AWS Amplify has a local event bus system called Hub. It is a lightweight implementation of Publisher-Subscriber pattern, and is used to share data between modules and components in your app.
 
-## Usage
+## Installation
 
-Import
-```
+Import:
+```js
 import { Hub } from 'aws-amplify';
 ```
 
-Dispatch an event
-```
+## Working with the API
+
+### dispatch()
+
+You can dispatch an event with `dispatch` function:
+```js
 Hub.dispatch('auth', { event: 'signIn', data: user }, 'Auth');
 ```
 
-Listen to a channel
-```
+### listen()
+
+You can subscribe to a channel with `listen` function:
+```js
 import { Hub, Logger } from 'aws-amplify';
 
 const logger = new Logger('MyClass');
@@ -25,18 +33,22 @@ class MyClass {
         Hub.listen('auth', this, 'MyListener');
     }
 
+    // Default handler for listening events
     onHubCapsule(capsule) {
-        const { name, payload, source } = capsule;
-        logger.debug(name, payload, source);
+        const { channel, payload } = capsule;
+        if (channel === 'auth') { onAuthEvent(payload); }
     }
 }
 ```
 
-## Channel
+In order to capture event updates, you need to implement `onHubCapsule` handler function in you listener class.
+{: .callout .callout--info}
 
-AWS Amplify Auth publish in `auth` channel when 'signIn', 'signUp', and 'signOut' happens. You may create your listener to act upon event happens.
+### Listening Authentication Events
 
-```
+AWS Amplify Authentication module publishes in `auth` channel when 'signIn', 'signUp', and 'signOut' events happen. You can create your listener to listen and act upon those event notifications.
+
+```js
 import { Hub, Logger } from 'aws-amplify';
 
 const logger = new Logger('MyClass');
@@ -47,8 +59,8 @@ class MyClass {
     }
 
     onHubCapsule(capsule) {
-        const { name, payload } = capsule;
-        if (name === 'auth') { onAuthEvent(payload); }
+        const { channel, payload } = capsule;
+        if (channel === 'auth') { onAuthEvent(payload); }
     }
 
     onAuthEvent(payload) {
@@ -70,3 +82,8 @@ class MyClass {
     }
 }
 ```
+
+### API Reference
+
+For the complete API documentation for Hub module, visit our [API Reference]({%if jekyll.environment == 'production'%}{{site.amplify.baseurl}}{%endif%}/api/classes/hubclass.html)
+{: .callout .callout--info}

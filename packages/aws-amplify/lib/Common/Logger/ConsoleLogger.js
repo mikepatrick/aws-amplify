@@ -23,7 +23,7 @@ var LOG_LEVELS = {
 * Write logs
 * @class Logger
 */
-var ConsoleLogger = (function () {
+var ConsoleLogger = /** @class */ (function () {
     /**
     * @constructor
     * @param {string} name - Name of the logger
@@ -68,12 +68,10 @@ var ConsoleLogger = (function () {
             // Do nothing if type is not greater than or equal to logger level (handle undefined)
             return;
         }
-        var log = console.log;
-        if (type === 'ERROR' && console.error) {
-            log = console.error;
-        }
+        var log = console.log.bind(console);
+        // if (type === 'ERROR' && console.error) { log = console.error.bind(console); }
         if (type === 'WARN' && console.warn) {
-            log = console.warn;
+            log = console.warn.bind(console);
         }
         if (msg.length === 1 && typeof msg[0] === 'string') {
             var output = [

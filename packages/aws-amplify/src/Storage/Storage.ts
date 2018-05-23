@@ -33,10 +33,15 @@ const dispatchStorageEvent = (track, attrs, metrics) => {
  * Provide storage methods to use AWS S3
  */
 export default class StorageClass {
-    /** 
-     * @private 
+    /**
+     * @private
      */
     private _options;
+
+    /**
+     * @public
+     */
+    public vault: StorageClass;
 
     /**
      * Initialize Storage with AWS configurations
@@ -50,11 +55,11 @@ export default class StorageClass {
     /**
      * Configure Storage part with aws configuration
      * @param {Object} config - Configuration of the Storage
-     * @return {Object} - Current configuration 
+     * @return {Object} - Current configuration
      */
-    configure(options) {
+    configure(options?) {
         logger.debug('configure Storage');
-        let opt = options? options.Storage || options : {};
+        let opt = options ? options.Storage || options : {};
 
         if (options['aws_user_files_s3_bucket']) {
             opt = {
@@ -67,63 +72,65 @@ export default class StorageClass {
 
         return this._options;
     }
-    
+
     /**
     * Get a presigned URL of the file
     * @param {String} key - key of the object
-    * @param {Object} [options] - { level : private|public }
+    * @param {Object} [options] - { level : private|protected|public }
     * @return - A promise resolves to Amazon S3 presigned URL on success
     */
-    public async get(key: string, options) :Promise<Object> {
+    public async get(key: string, options?): Promise<Object> {
         const credentialsOK = await this._ensureCredentials();
         if (!credentialsOK) { return Promise.reject('No credentials'); }
 
         const opt = Object.assign({}, this._options, options);
-        const { bucket, region, credentials, level, download, track } = opt;
+        const { bucket, region, credentials, level, download, track, expires } = opt;
 
         const prefix = this._prefix(opt);
         const final_key = prefix + key;
         const s3 = this._createS3(opt);
         logger.debug('get ' + key + ' from ' + final_key);
 
-        const params = {
+        const params: any = {
             Bucket: bucket,
             Key: final_key
         };
 
-        if(download === true) {
+        if (download === true) {
             return new Promise<any>((res, rej) => {
                 s3.getObject(params, (err, data) => {
-                    if(err) {
+                    if (err) {
                         dispatchStorageEvent(
-                            track, 
-                            { method: 'get', result: 'failed' }, 
+                            track,
+                            { method: 'get', result: 'failed' },
                             null);
                         rej(err);
                     } else {
                         dispatchStorageEvent(
-                            track, 
-                            { method: 'get', result: 'success' }, 
-                            { fileSize: Number(data.Body['length'])});
+                            track,
+                            { method: 'get', result: 'success' },
+                            { fileSize: Number(data.Body['length']) });
                         res(data);
                     }
                 });
             });
         }
 
+        if (expires) { params.Expires = expires; }
+
         return new Promise<string>((res, rej) => {
             try {
                 const url = s3.getSignedUrl('getObject', params);
                 dispatchStorageEvent(
-                    track, 
-                    { method: 'get', result: 'success' }, 
+                    track,
+                    { method: 'get', result: 'success' },
                     null);
                 res(url);
             } catch (e) {
                 logger.warn('get signed url error', e);
                 dispatchStorageEvent(
-                    track, 
-                    { method: 'get', result: 'failed' }, 
+                    track,
+                    { method: 'get', result: 'failed' },
                     null);
                 rej(e);
             }
@@ -134,42 +141,47 @@ export default class StorageClass {
      * Put a file in S3 bucket specified to configure method
      * @param {Stirng} key - key of the object
      * @param {Object} object - File to be put in Amazon S3 bucket
-     * @param {Object} [options] - { level : private|public, contentType: MIME Types }
+     * @param {Object} [options] - { level : private|protected|public, contentType: MIME Types }
      * @return - promise resolves to object on success
      */
-    public async put(key:string, object, options): Promise<Object> {
+    public async put(key: string, object, options?): Promise<Object> {
         const credentialsOK = await this._ensureCredentials();
         if (!credentialsOK) { return Promise.reject('No credentials'); }
 
         const opt = Object.assign({}, this._options, options);
-        const { bucket, region, credentials, contentType, level, track } = opt;
-        const type = contentType? contentType: 'binary/octet-stream';
+        const { bucket, region, credentials, level, track } = opt;
+        const { contentType, contentDisposition, cacheControl, expires, metadata } = opt;
+        const type = contentType ? contentType : 'binary/octet-stream';
 
         const prefix = this._prefix(opt);
         const final_key = prefix + key;
         const s3 = this._createS3(opt);
         logger.debug('put ' + key + ' to ' + final_key);
 
-        const params = {
+        const params: any = {
             Bucket: bucket,
             Key: final_key,
             Body: object,
             ContentType: type
         };
-    
+        if (cacheControl) { params.CacheControl = cacheControl; }
+        if (contentDisposition) { params.ContentDisposition = contentDisposition; }
+        if (expires) { params.Expires = expires; }
+        if (metadata) { params.Metadata = metadata; }
+
         return new Promise<Object>((res, rej) => {
             s3.upload(params, (err, data) => {
-                if(err) {
+                if (err) {
                     logger.warn("error uploading", err);
                     dispatchStorageEvent(
-                        track, 
+                        track,
                         { method: 'put', result: 'failed' },
                         null);
-                    rej (err);
+                    rej(err);
                 } else {
                     logger.debug('upload result', data);
                     dispatchStorageEvent(
-                        track, 
+                        track,
                         { method: 'put', result: 'success' },
                         null);
                     res({
@@ -183,10 +195,10 @@ export default class StorageClass {
     /**
      * Remove the object for specified key
      * @param {String} key - key of the object
-     * @param {Object} [options] - { level : private|public }
+     * @param {Object} [options] - { level : private|protected|public }
      * @return - Promise resolves upon successful removal of the object
-     */ 
-    public async remove(key: string, options) :Promise<any> {
+     */
+    public async remove(key: string, options?): Promise<any> {
         const credentialsOK = await this._ensureCredentials();
         if (!credentialsOK) { return Promise.reject('No credentials'); }
 
@@ -204,10 +216,10 @@ export default class StorageClass {
         };
 
         return new Promise<any>((res, rej) => {
-            s3.deleteObject(params, (err,data) => {
-                if(err){
+            s3.deleteObject(params, (err, data) => {
+                if (err) {
                     dispatchStorageEvent(
-                        track, 
+                        track,
                         { method: 'remove', result: 'failed' },
                         null);
                     rej(err);
@@ -225,10 +237,10 @@ export default class StorageClass {
     /**
      * List bucket objects relative to the level and prefix specified
      * @param {String} path - the path that contains objects
-     * @param {Object} [options] - { level : private|public }
+     * @param {Object} [options] - { level : private|protected|public }
      * @return - Promise resolves to list of keys for all objects in path
      */
-    public async list(path, options) : Promise<any> {
+    public async list(path, options?): Promise<any> {
         const credentialsOK = await this._ensureCredentials();
         if (!credentialsOK) { return Promise.reject('No credentials'); }
 
@@ -247,11 +259,11 @@ export default class StorageClass {
 
         return new Promise<any>((res, rej) => {
             s3.listObjects(params, (err, data) => {
-                if(err) {
+                if (err) {
                     logger.warn('list error', err);
                     dispatchStorageEvent(
-                        track, 
-                        { method: 'list', result: 'failed' }, 
+                        track,
+                        { method: 'list', result: 'failed' },
                         null);
                     rej(err);
                 } else {
@@ -264,8 +276,8 @@ export default class StorageClass {
                         };
                     });
                     dispatchStorageEvent(
-                        track, 
-                        { method: 'list', result: 'success' }, 
+                        track,
+                        { method: 'list', result: 'success' },
                         null);
                     logger.debug('list', list);
                     res(list);
@@ -284,6 +296,7 @@ export default class StorageClass {
 
         return Auth.currentCredentials()
             .then(credentials => {
+                if (!credentials) return false;
                 const cred = Auth.essentialCredentials(credentials);
                 logger.debug('set credentials for storage', cred);
                 this._options.credentials = cred;
@@ -301,7 +314,21 @@ export default class StorageClass {
      */
     private _prefix(options) {
         const { credentials, level } = options;
-        return (level === 'private')? `private/${credentials.identityId}/` : 'public/';
+
+        const customPrefix = options.customPrefix || {};
+        const identityId = options.identityId || credentials.identityId;
+        const privatePath = (customPrefix.private || 'private/') + identityId + '/';
+        const protectedPath = (customPrefix.protected || 'protected/') + identityId + '/';
+        const publicPath = customPrefix.public || 'public/';
+
+        switch (level) {
+            case 'private':
+                return privatePath;
+            case 'protected':
+                return protectedPath;
+            default:
+                return publicPath;
+        }
     }
 
     /**
@@ -313,7 +340,7 @@ export default class StorageClass {
             region,
             credentials
         });
-        return  new S3({
+        return new S3({
             apiVersion: '2006-03-01',
             params: { Bucket: bucket },
             region

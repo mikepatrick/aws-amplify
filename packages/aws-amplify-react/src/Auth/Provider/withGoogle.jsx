@@ -20,8 +20,14 @@ export default function withGoogle(Comp) {
 
         signIn() {
             const ga = window.gapi.auth2.getAuthInstance();
-            ga.signIn()
-                .then(googleUser => this.federatedSignIn(googleUser));
+            const { onError } = this.props;
+            ga.signIn().then(
+                googleUser => this.federatedSignIn(googleUser),
+                error => {
+                    if (onError) onError(error);
+                    else throw error;
+                }
+            );
         }
 
         federatedSignIn(googleUser) {
@@ -33,16 +39,20 @@ export default function withGoogle(Comp) {
             };
 
             const { onStateChange } = this.props;
-            return Auth.federatedSignIn('google', { token: id_token, expires_at }, user)
-                .then(crednetials => {
-                    if (onStateChange) {
-                        onStateChange('signedIn');
-                    }
-                });
+            return Auth.federatedSignIn(
+                'google',
+                { token: id_token, expires_at },
+                user
+            ).then(credentials => {
+                if (onStateChange) {
+                    onStateChange('signedIn');
+                }
+            });
         }
 
         componentDidMount() {
-            this.createScript();
+            const { google_client_id } = this.props;
+            if (google_client_id) this.createScript();
         }
 
         createScript() {
@@ -68,15 +78,16 @@ export default function withGoogle(Comp) {
         }
 
         render() {
-            const ga = (window.gapi && window.gapi.auth2) ? window.gapi.auth2.getAuthInstance() : null;
-            return (
-                <Comp {...this.props} ga={ga} googleSignIn={this.signIn} />
-            )
+            const ga =
+                window.gapi && window.gapi.auth2
+                    ? window.gapi.auth2.getAuthInstance()
+                    : null;
+            return <Comp {...this.props} ga={ga} googleSignIn={this.signIn} />;
         }
-    }
+    };
 }
 
-const Button = (props) => (
+const Button = props => (
     <SignInButton
         id="google_signin_btn"
         onClick={props.googleSignIn}
@@ -84,6 +95,6 @@ const Button = (props) => (
     >
         Sign In with Google
     </SignInButton>
-)
+);
 
 export const GoogleButton = withGoogle(Button);

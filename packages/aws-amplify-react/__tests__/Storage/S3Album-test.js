@@ -4,6 +4,9 @@ import S3Image from '../../src/Storage/S3Image';
 import React from 'react';
 import { Storage, JS } from 'aws-amplify';
 
+const timespy = jest.spyOn(Date.prototype, 'getTime').mockImplementation(() => {
+    return 0
+});
 describe('S3Album test', () => {
     describe('render test', () => {
         test('render correctly if has images and texts', () => {
@@ -194,7 +197,7 @@ describe('S3Album test', () => {
 
             expect.assertions(2);
             expect(spyon).toBeCalledWith({"file": "file", "name": "name", "size": "size", "type": "type"});
-            expect(spyon2).toBeCalledWith('path', 'file', {contentType: 'type'});
+            expect(spyon2).toBeCalledWith('path', 'file', {"contentType": "type", "level": "public", "track": undefined});
         
             spyon.mockClear();
             spyon2.mockClear();
@@ -244,7 +247,7 @@ describe('S3Album test', () => {
 
             expect.assertions(3);
             expect(spyon).toBeCalledWith({"file": "file", "name": "name", "size": "size", "type": "type"});
-            expect(spyon2).toBeCalledWith('path', 'file', {contentType: 'type'});
+            expect(spyon2).toBeCalledWith('path', 'file', {"contentType": "type", "level": "public", "track": undefined});
             expect(spyon3).toBeCalledWith([{key: 'path2'}, 'data']);
         
             spyon.mockClear();
@@ -292,7 +295,7 @@ describe('S3Album test', () => {
 
             expect.assertions(2);
             expect(spyon).toBeCalledWith({"file": "file", "name": "name", "size": "size", "type": "type"});
-            expect(spyon2).toBeCalledWith('path', 'file', {contentType: 'type'});
+            expect(spyon2).toBeCalledWith('path', 'file', {"contentType": "type", "level": "public", "track": undefined});
         
             spyon.mockClear();
             spyon2.mockClear();
@@ -378,6 +381,7 @@ describe('S3Album test', () => {
 
     describe('list test', () => {
         test('happy case', async () => {
+            // this is for component did mount
             const spyon = jest.spyOn(Storage, 'list')
                 .mockImplementationOnce(() => {
                     return new Promise((res, rej) => {
@@ -397,19 +401,27 @@ describe('S3Album test', () => {
             const s3Album = wrapper.instance();
             wrapper.setProps(props);
 
+            const spyon3 = jest.spyOn(Storage, 'list')
+                .mockImplementationOnce(() => {
+                    return new Promise((res, rej) => {
+                        res('data');
+                    });
+                });
+
             await s3Album.list();
 
-            expect(spyon).toBeCalledWith('path', {level: 'public'});
+            expect(spyon3).toBeCalledWith('path', {level: 'public'});
 
             spyon.mockClear();
             spyon2.mockClear();
+            spyon3.mockClear();
         }); 
 
         test('storage list error', async () => {
             const spyon = jest.spyOn(Storage, 'list')
                 .mockImplementationOnce(() => {
                     return new Promise((res, rej) => {
-                        rej('err');
+                        res('data');
                     });
                 });
 
@@ -422,9 +434,17 @@ describe('S3Album test', () => {
             const s3Album = wrapper.instance();
             wrapper.setProps(props);
 
+            const spyon2 = jest.spyOn(Storage, 'list')
+                .mockImplementationOnce(() => {
+                    return new Promise((res, rej) => {
+                        rej('err');
+                    });
+                });
+
             expect(await s3Album.list()).toEqual([]);
 
             spyon.mockClear();
+            spyon2.mockClear();
         });
     });
 
